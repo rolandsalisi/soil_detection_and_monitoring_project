@@ -9,6 +9,7 @@ Features:
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import time
 import math
@@ -112,36 +113,6 @@ st.markdown(f"""
   header {{ visibility: hidden !important; height: 0 !important; }}
   [data-testid="collapsedControl"] {{ display: none !important; }}
 
-  /* ── Floating hamburger — always on top, always visible ── */
-  #agri-burger {{
-    position: fixed;
-    top: 14px;
-    left: 14px;
-    z-index: 999999;
-    width: 42px;
-    height: 42px;
-    background: {T['accent']};
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.30);
-    transition: background 0.2s, transform 0.15s;
-  }}
-  #agri-burger:hover {{ background: {T['text2']}; transform: scale(1.07); }}
-  #agri-burger .bar {{
-    display: block;
-    width: 20px;
-    height: 2.5px;
-    background: white;
-    border-radius: 3px;
-    transition: all 0.28s ease;
-  }}
-
   /* ── Sidebar ── */
   [data-testid="stSidebar"] {{
     background: {T['sidebar_bg']} !important;
@@ -241,92 +212,79 @@ st.markdown(f"""
   ::-webkit-scrollbar-track {{ background: {T['bg2']}; }}
   ::-webkit-scrollbar-thumb {{ background: {T['accent']}; border-radius: 3px; }}
 </style>
+""", unsafe_allow_html=True)
 
-<!-- ═══ Persistent Floating Hamburger ═══ -->
-<button id="agri-burger" title="Toggle sidebar">
+# ── Floating Hamburger via components.html ────────────────────
+# components.html() runs in its own iframe that CAN reach
+# window.parent.document — unlike st.markdown's sandboxed iframe.
+components.html(f"""
+<style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ background:transparent; overflow:hidden; }}
+  #burger {{
+    position: fixed;
+    top: 0; left: 0;
+    width: 42px; height: 42px;
+    background: {T['accent']};
+    border: none; border-radius: 10px;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 5px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.28);
+    transition: background 0.2s, transform 0.15s;
+  }}
+  #burger:hover {{ background: {T['text2']}; transform: scale(1.06); }}
+  .bar {{
+    display: block; width: 20px; height: 2.5px;
+    background: white; border-radius: 3px;
+    transition: all 0.28s ease;
+  }}
+</style>
+<button id="burger" title="Toggle sidebar">
   <span class="bar" id="b1"></span>
   <span class="bar" id="b2"></span>
   <span class="bar" id="b3"></span>
 </button>
-
 <script>
-(function() {{
-  var open = true;   // sidebar starts expanded
+  var collapsed = false;
 
   function getSidebar() {{
     return window.parent.document.querySelector('[data-testid="stSidebar"]');
   }}
 
-  function getNativeBtn() {{
-    var doc = window.parent.document;
-    // Try various selectors Streamlit uses across versions
-    return (
-      doc.querySelector('[data-testid="collapsedControl"]') ||
-      doc.querySelector('button[aria-label="Close sidebar"]') ||
-      doc.querySelector('button[aria-label="Open sidebar"]') ||
-      doc.querySelector('button[aria-label="open sidebar"]') ||
-      doc.querySelector('button[aria-label="close sidebar"]')
-    );
-  }}
-
-  function animateBurger(isOpen) {{
+  function animateBurger(isCollapsed) {{
     var b1 = document.getElementById('b1');
     var b2 = document.getElementById('b2');
     var b3 = document.getElementById('b3');
     if (!b1) return;
-    if (isOpen) {{
+    if (isCollapsed) {{
       b1.style.transform = 'rotate(45deg) translate(5.5px, 5.5px)';
       b2.style.opacity   = '0';
       b3.style.transform = 'rotate(-45deg) translate(5.5px, -5.5px)';
     }} else {{
-      b1.style.transform = '';
+      b1.style.transform = 'none';
       b2.style.opacity   = '1';
-      b3.style.transform = '';
+      b3.style.transform = 'none';
     }}
   }}
 
-  function toggle() {{
+  document.getElementById('burger').addEventListener('click', function() {{
     var sidebar = getSidebar();
     if (!sidebar) return;
-
-    // Detect current state by sidebar width
-    open = sidebar.getBoundingClientRect().width > 60;
-
-    // Try clicking the native button first
-    var btn = getNativeBtn();
-    if (btn) {{
-      btn.click();
-      open = !open;
-      animateBurger(open);
-      return;
-    }}
-
-    // Fallback: manually toggle sidebar visibility
-    if (open) {{
-      sidebar.style.marginLeft = '-' + sidebar.offsetWidth + 'px';
-      sidebar.style.transition = 'margin-left 0.3s ease';
+    if (!collapsed) {{
+      sidebar.style.transition = 'transform 0.3s ease';
+      sidebar.style.transform  = 'translateX(-110%)';
+      collapsed = true;
     }} else {{
-      sidebar.style.marginLeft = '0';
-      sidebar.style.transition = 'margin-left 0.3s ease';
+      sidebar.style.transition = 'transform 0.3s ease';
+      sidebar.style.transform  = 'translateX(0)';
+      collapsed = false;
     }}
-    open = !open;
-    animateBurger(open);
-  }}
-
-  // Attach click
-  var burger = document.getElementById('agri-burger');
-  if (burger) burger.onclick = toggle;
-
-  // Poll to keep burger icon in sync with actual sidebar state
-  setInterval(function() {{
-    var sidebar = getSidebar();
-    if (!sidebar) return;
-    var isOpen = sidebar.getBoundingClientRect().width > 60;
-    animateBurger(isOpen);
-  }}, 400);
-}})();
+    animateBurger(collapsed);
+  }});
 </script>
-""", unsafe_allow_html=True)
+""", height=56, scrolling=False)
 
 
 # ── Helper: Fetch Data ────────────────────────────────────────
