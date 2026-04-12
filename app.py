@@ -32,7 +32,7 @@ if "auto_refresh" not in st.session_state: st.session_state.auto_refresh = True
 if "dark_mode"    not in st.session_state: st.session_state.dark_mode    = False
 
 # ── Constants ─────────────────────────────────────────────────
-SERVER_URL   = "http://localhost:8000"
+SERVER_URL   = st.secrets.get("DATA_SERVER_URL", "http://localhost:8000")
 REFRESH_SECS = 5
 
 # ── Theme Palettes ────────────────────────────────────────────
