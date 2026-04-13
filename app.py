@@ -9,7 +9,6 @@ Features:
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
 import requests
 import time
 import math
@@ -108,10 +107,37 @@ st.markdown(f"""
   }}
   h1,h2,h3,h4 {{ font-family: 'Playfair Display', serif; color: {T['text']} !important; }}
 
-  /* ── Hide ALL Streamlit chrome including native hamburger ── */
-  #MainMenu, footer {{ visibility: hidden !important; height: 0 !important; }}
-  header {{ visibility: hidden !important; height: 0 !important; }}
-  [data-testid="collapsedControl"] {{ display: none !important; }}
+  /* ── Hide Streamlit chrome except the sidebar toggle ── */
+  #MainMenu {{ visibility: hidden !important; }}
+  footer {{ visibility: hidden !important; }}
+
+  /* Keep the header visible but transparent so the native burger shows */
+  header[data-testid="stHeader"] {{
+    background: transparent !important;
+    height: 3.2rem !important;
+  }}
+
+  /* Restyle the native hamburger/collapse button to match green theme */
+  [data-testid="collapsedControl"] {{
+    display: flex !important;
+    visibility: visible !important;
+    background: {T['accent']} !important;
+    border-radius: 10px !important;
+    width: 38px !important;
+    height: 38px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 6px 0 0 8px !important;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25) !important;
+    transition: background 0.2s !important;
+  }}
+  [data-testid="collapsedControl"]:hover {{
+    background: {T['text2']} !important;
+  }}
+  [data-testid="collapsedControl"] svg {{
+    fill: white !important;
+    color: white !important;
+  }}
 
   /* ── Sidebar ── */
   [data-testid="stSidebar"] {{
@@ -127,7 +153,7 @@ st.markdown(f"""
 
   /* ── Main content ── */
   .main .block-container {{
-    padding-top: 3.8rem !important;
+    padding-top: 1rem !important;
     background: {T['bg']} !important;
   }}
 
@@ -213,78 +239,6 @@ st.markdown(f"""
   ::-webkit-scrollbar-thumb {{ background: {T['accent']}; border-radius: 3px; }}
 </style>
 """, unsafe_allow_html=True)
-
-# ── Floating Hamburger via components.html ────────────────────
-# components.html() runs in its own iframe that CAN reach
-# window.parent.document — unlike st.markdown's sandboxed iframe.
-components.html(f"""
-<style>
-  * {{ margin:0; padding:0; box-sizing:border-box; }}
-  body {{ background:transparent; overflow:hidden; }}
-  #burger {{
-    position: fixed;
-    top: 0; left: 0;
-    width: 42px; height: 42px;
-    background: {T['accent']};
-    border: none; border-radius: 10px;
-    cursor: pointer;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 5px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.28);
-    transition: background 0.2s, transform 0.15s;
-  }}
-  #burger:hover {{ background: {T['text2']}; transform: scale(1.06); }}
-  .bar {{
-    display: block; width: 20px; height: 2.5px;
-    background: white; border-radius: 3px;
-    transition: all 0.28s ease;
-  }}
-</style>
-<button id="burger" title="Toggle sidebar">
-  <span class="bar" id="b1"></span>
-  <span class="bar" id="b2"></span>
-  <span class="bar" id="b3"></span>
-</button>
-<script>
-  var collapsed = false;
-
-  function getSidebar() {{
-    return window.parent.document.querySelector('[data-testid="stSidebar"]');
-  }}
-
-  function animateBurger(isCollapsed) {{
-    var b1 = document.getElementById('b1');
-    var b2 = document.getElementById('b2');
-    var b3 = document.getElementById('b3');
-    if (!b1) return;
-    if (isCollapsed) {{
-      b1.style.transform = 'rotate(45deg) translate(5.5px, 5.5px)';
-      b2.style.opacity   = '0';
-      b3.style.transform = 'rotate(-45deg) translate(5.5px, -5.5px)';
-    }} else {{
-      b1.style.transform = 'none';
-      b2.style.opacity   = '1';
-      b3.style.transform = 'none';
-    }}
-  }}
-
-  document.getElementById('burger').addEventListener('click', function() {{
-    var sidebar = getSidebar();
-    if (!sidebar) return;
-    if (!collapsed) {{
-      sidebar.style.transition = 'transform 0.3s ease';
-      sidebar.style.transform  = 'translateX(-110%)';
-      collapsed = true;
-    }} else {{
-      sidebar.style.transition = 'transform 0.3s ease';
-      sidebar.style.transform  = 'translateX(0)';
-      collapsed = false;
-    }}
-    animateBurger(collapsed);
-  }});
-</script>
-""", height=56, scrolling=False)
 
 
 # ── Helper: Fetch Data ────────────────────────────────────────
