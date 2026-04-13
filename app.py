@@ -26,12 +26,10 @@ st.set_page_config(
 )
 
 # ── Session State ─────────────────────────────────────────────
-if "history"           not in st.session_state: st.session_state.history           = []
-if "use_demo"          not in st.session_state: st.session_state.use_demo          = False
-if "auto_refresh"      not in st.session_state: st.session_state.auto_refresh      = True
-if "dark_mode"         not in st.session_state: st.session_state.dark_mode         = False
-if "auto_detected_ip"  not in st.session_state: st.session_state.auto_detected_ip  = None
-if "esp32_scanning"    not in st.session_state: st.session_state.esp32_scanning    = False
+if "history"      not in st.session_state: st.session_state.history      = []
+if "use_demo"     not in st.session_state: st.session_state.use_demo     = False
+if "auto_refresh" not in st.session_state: st.session_state.auto_refresh = True
+if "dark_mode"    not in st.session_state: st.session_state.dark_mode    = False
 
 # ── Constants ─────────────────────────────────────────────────
 SERVER_URL   = st.secrets.get("DATA_SERVER_URL", "http://localhost:8000")
@@ -239,85 +237,6 @@ st.markdown(f"""
   ::-webkit-scrollbar {{ width: 6px; }}
   ::-webkit-scrollbar-track {{ background: {T['bg2']}; }}
   ::-webkit-scrollbar-thumb {{ background: {T['accent']}; border-radius: 3px; }}
-
-  /* ── Datetime weather card ── */
-  .dt-card {{
-    background: {T['hero_grad']};
-    border-radius: 16px;
-    padding: 1.4rem 1.8rem;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    box-shadow: {T['card_shadow']};
-    overflow: hidden;
-    position: relative;
-  }}
-  .dt-card::before {{
-    content: '';
-    position: absolute;
-    top: -40px; right: -40px;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.04);
-    pointer-events: none;
-  }}
-  .dt-card::after {{
-    content: '';
-    position: absolute;
-    bottom: -50px; left: 20%;
-    width: 220px; height: 220px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.03);
-    pointer-events: none;
-  }}
-  .dt-left {{ z-index: 1; }}
-  .dt-time {{
-    font-family: 'Playfair Display', serif;
-    font-size: 3.2rem;
-    font-weight: 700;
-    color: #ffffff;
-    line-height: 1;
-    letter-spacing: -0.02em;
-  }}
-  .dt-date {{
-    font-size: 0.95rem;
-    color: rgba(255,255,255,0.80);
-    margin-top: 0.35rem;
-    letter-spacing: 0.02em;
-  }}
-  .dt-right {{
-    z-index: 1;
-    text-align: right;
-  }}
-  .dt-conn-badge {{
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.20);
-    border-radius: 999px;
-    padding: 5px 14px;
-    font-size: 0.80rem;
-    font-weight: 600;
-    color: #ffffff;
-    margin-bottom: 0.5rem;
-  }}
-  .dt-conn-dot {{
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    display: inline-block;
-    flex-shrink: 0;
-  }}
-  .dt-conn-dot.live    {{ background: #4ade80; box-shadow: 0 0 6px #4ade80; }}
-  .dt-conn-dot.demo    {{ background: #facc15; box-shadow: 0 0 6px #facc15; }}
-  .dt-conn-dot.offline {{ background: #f87171; }}
-  .dt-ip {{
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.55);
-    margin-top: 0.2rem;
-  }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -342,28 +261,6 @@ def get_demo_data():
         "device_id":     "DEMO-MODE",
         "server_time":   t,
     }
-
-# ── ESP32 Auto-scan ───────────────────────────────────────────
-def scan_for_esp32(subnet_prefix: str = "192.168.1", timeout: float = 1.0):
-    """
-    Probe common host addresses on the LAN to find an ESP32
-    serving the /latest endpoint.  Returns (ip, data) on first hit.
-    Probes .100 → .120 first (common DHCP range), then .1 → .254.
-    Skips anything already tried.
-    """
-    priority = list(range(100, 121)) + [x for x in range(1, 255) if x not in range(100, 121)]
-    for host in priority:
-        ip = f"{subnet_prefix}.{host}"
-        try:
-            r = requests.get(f"http://{ip}/latest", timeout=timeout)
-            if r.status_code == 200:
-                data = r.json()
-                # Sanity-check: must have at least one sensor field
-                if "temperature" in data or "soil_moisture" in data:
-                    return ip, data
-        except Exception:
-            pass
-    return None, None
 
 def status_label(value, low, high):
     dark = st.session_state.dark_mode
@@ -447,48 +344,20 @@ with st.sidebar:
 
     # ── Data Settings ─────────────────────────────────────────
     st.markdown(f"<p style='font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:{T['text_muted']};margin:0 0 0.2rem'>Data Settings</p>", unsafe_allow_html=True)
-    st.session_state.use_demo     = st.toggle("Use Demo Data",  value=st.session_state.use_demo)
-    st.session_state.auto_refresh = st.toggle("Auto-refresh",   value=st.session_state.auto_refresh)
-    server_input = st.text_input(
-        "Data Server URL",
-        value=f"http://{st.session_state.auto_detected_ip}" if st.session_state.auto_detected_ip else SERVER_URL,
-        help="Auto-filled when ESP32 is detected. Override manually if needed.",
-    )
+    st.session_state.use_demo     = st.toggle("🧪  Use Demo Data",  value=st.session_state.use_demo)
+    st.session_state.auto_refresh = st.toggle("🔄  Auto-refresh",   value=st.session_state.auto_refresh)
+    server_input = st.text_input("Data Server URL", value=SERVER_URL)
 
     st.markdown(f"<hr style='border:none;border-top:1px solid {T['border']};margin:0.8rem 0'>", unsafe_allow_html=True)
 
-    # ── Device Info / Auto-detect ─────────────────────────────
-    st.markdown(f"<p style='font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:{T['text_muted']};margin:0 0 0.4rem'>Device Info</p>", unsafe_allow_html=True)
-
-    detected = st.session_state.auto_detected_ip
-    if detected:
-        st.markdown(f"<div style='font-size:0.81rem;line-height:1.7;color:{T['text_muted']}'>"
-                    f"<b>Auto-detected:</b> <span style='color:{T['accent']};font-weight:600'>{detected}</span><br>"
-                    f"<b>Device:</b> ESP32 WROOM<br><b>Firmware:</b> v1.0.0<br>"
-                    f"<b>Protocol:</b> HTTP GET<br><b>Interval:</b> 5 s</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div style='font-size:0.81rem;color:{T['text_muted']}'>No ESP32 detected yet.</div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
-
-    subnet = st.text_input("Subnet prefix", value="192.168.1",
-                           help="First three octets of your LAN, e.g. 192.168.1")
-    if st.button("Scan for ESP32", use_container_width=True):
-        with st.spinner("Scanning LAN for ESP32…"):
-            found_ip, found_data = scan_for_esp32(subnet)
-        if found_ip:
-            st.session_state.auto_detected_ip = found_ip
-            # Patch SERVER_URL so the main loop picks it up immediately
-            SERVER_URL = f"http://{found_ip}"
-            st.success(f"Found ESP32 at {found_ip}")
-            st.rerun()
-        else:
-            st.warning("No ESP32 found. Check subnet or enable Demo Mode.")
+    # ── Device Info ───────────────────────────────────────────
+    st.markdown(f"<p style='font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:{T['text_muted']};margin:0 0 0.4rem'>📡 Device Info</p>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:0.81rem;line-height:1.7;color:{T['text_muted']}'><b>Device:</b> ESP32 WROOM<br><b>Firmware:</b> v1.0.0<br><b>Protocol:</b> HTTP POST<br><b>Interval:</b> 5 s</div>", unsafe_allow_html=True)
 
     st.markdown(f"<hr style='border:none;border-top:1px solid {T['border']};margin:0.8rem 0'>", unsafe_allow_html=True)
 
     # ── Sensor Pins ───────────────────────────────────────────
-    st.markdown(f"<p style='font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:{T['text_muted']};margin:0 0 0.4rem'>Sensor Pins</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='font-size:0.72rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:{T['text_muted']};margin:0 0 0.4rem'>🔌 Sensor Pins</p>", unsafe_allow_html=True)
     st.markdown(f"<div style='font-size:0.81rem;line-height:1.7;color:{T['text_muted']}'><b>DHT22 Data:</b> GPIO 4<br><b>Soil Moisture:</b> GPIO 34<br><b>LDR:</b> GPIO 35<br><b>All VCC:</b> 3.3V</div>", unsafe_allow_html=True)
 
     st.markdown(f"<hr style='border:none;border-top:1px solid {T['border']};margin:0.8rem 0'>", unsafe_allow_html=True)
@@ -503,47 +372,8 @@ SERVER_URL = server_input
 
 st.markdown(f"""
 <div class="hero-header">
-  <h1>AgriSense Dashboard</h1>
+  <h1>🌱 AgriSense Dashboard</h1>
   <p>Real-time IoT Agriculture Monitoring &amp; Plant Recommendation System</p>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Datetime + Connection Weather Card ───────────────────────
-now          = datetime.now()
-time_str     = now.strftime("%H:%M")
-seconds_str  = now.strftime(":%S")
-weekday_str  = now.strftime("%A")
-date_str     = now.strftime("%B %d, %Y")
-
-# Connection state for badge
-if st.session_state.use_demo:
-    conn_dot_cls = "demo"
-    conn_label   = "Demo Mode"
-    conn_ip      = "Simulated data"
-elif st.session_state.auto_detected_ip:
-    conn_dot_cls = "live"
-    conn_label   = "ESP32 Connected"
-    conn_ip      = st.session_state.auto_detected_ip
-else:
-    conn_dot_cls = "offline"
-    conn_label   = "No Device"
-    conn_ip      = "Run scan or enter URL"
-
-st.markdown(f"""
-<div class="dt-card">
-  <div class="dt-left">
-    <div class="dt-time">{time_str}<span style="font-size:1.8rem;opacity:0.65">{seconds_str}</span></div>
-    <div class="dt-date">{weekday_str} · {date_str}</div>
-  </div>
-  <div class="dt-right">
-    <div>
-      <span class="dt-conn-badge">
-        <span class="dt-conn-dot {conn_dot_cls}"></span>
-        {conn_label}
-      </span>
-    </div>
-    <div class="dt-ip">{conn_ip}</div>
-  </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -561,11 +391,11 @@ if data:
 # ── Status Banner ─────────────────────────────────────────────
 if source == "live" and data:
     ts = datetime.fromtimestamp(data.get("server_time", time.time())).strftime("%H:%M:%S")
-    st.markdown(f'<div class="status-banner status-live">Live — Last update: {ts} · Device: {data.get("device_id","–")}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="status-banner status-live">🟢 Live — Last update: {ts} · Device: {data.get("device_id","–")}</div>', unsafe_allow_html=True)
 elif source == "demo":
-    st.markdown('<div class="status-banner status-demo">Demo Mode — Simulated sensor data</div>', unsafe_allow_html=True)
+    st.markdown('<div class="status-banner status-demo">🟡 Demo Mode — Simulated sensor data</div>', unsafe_allow_html=True)
 else:
-    st.markdown('<div class="status-banner status-offline">Offline — Cannot reach data server. Enable Demo Mode or check connection.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="status-banner status-offline">🔴 Offline — Cannot reach data server. Enable Demo Mode or check connection.</div>', unsafe_allow_html=True)
 
 if not data:
     st.info("No sensor data. Enable **Demo Mode** in the sidebar or check your ESP32 and data server.")
@@ -579,7 +409,7 @@ light = data["light_level"]
 # ══════════════════════════════════════════════════════════════
 #  SECTION 1 – GAUGES
 # ══════════════════════════════════════════════════════════════
-st.markdown('<div class="section-title">Current Sensor Readings</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">📊 Current Sensor Readings</div>', unsafe_allow_html=True)
 
 g1, g2, g3, g4 = st.columns(4)
 with g1: st.plotly_chart(make_gauge(temp,  "Temperature",  -10, 50,  "°C", "#e07a5f", [18, 32]), width='stretch')
@@ -589,10 +419,10 @@ with g4: st.plotly_chart(make_gauge(light, "Light Level",    0, 100, "%",  "#fac
 
 m1, m2, m3, m4 = st.columns(4)
 for col, cls, label, val, unit, lo, hi in [
-    (m1, "temp",  "Temperature",   temp,  "°C", 18, 32),
-    (m2, "humid", "Humidity",      humid, "%",  40, 80),
-    (m3, "soil",  "Soil Moisture", soil,  "%",  30, 70),
-    (m4, "light", "Light Level",   light, "%",  20, 85),
+    (m1, "temp",  "🌡️ Temperature",   temp,  "°C", 18, 32),
+    (m2, "humid", "💧 Humidity",      humid, "%",  40, 80),
+    (m3, "soil",  "🌍 Soil Moisture", soil,  "%",  30, 70),
+    (m4, "light", "☀️ Light Level",   light, "%",  20, 85),
 ]:
     emoji, status_text, style = status_label(val, lo, hi)
     with col:
@@ -607,7 +437,7 @@ for col, cls, label, val, unit, lo, hi in [
 #  SECTION 2 – TREND
 # ══════════════════════════════════════════════════════════════
 if len(st.session_state.history) >= 2:
-    st.markdown('<div class="section-title">Historical Trend</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">📈 Historical Trend</div>', unsafe_allow_html=True)
     trend_fig = make_trend_chart(st.session_state.history)
     if trend_fig:
         st.plotly_chart(trend_fig, width='stretch')
@@ -615,7 +445,7 @@ if len(st.session_state.history) >= 2:
 # ══════════════════════════════════════════════════════════════
 #  SECTION 3 – PLANT RECOMMENDATIONS
 # ══════════════════════════════════════════════════════════════
-st.markdown('<div class="section-title">Plant Category Recommendations</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">🌿 Plant Category Recommendations</div>', unsafe_allow_html=True)
 st.caption("Suitability scores based on current sensor readings.")
 
 conditions      = classify_conditions(temp, humid, soil, light)
@@ -661,7 +491,7 @@ for col, rec in zip([r1, r2, r3], recommendations):
 # ══════════════════════════════════════════════════════════════
 #  SECTION 4 – RADAR
 # ══════════════════════════════════════════════════════════════
-st.markdown('<div class="section-title">Suitability Comparison</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">🎯 Suitability Comparison</div>', unsafe_allow_html=True)
 
 categories_radar = ["Temperature", "Humidity", "Soil Moisture", "Light Level"]
 fig_radar = go.Figure()
