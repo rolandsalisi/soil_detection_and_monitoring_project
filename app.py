@@ -19,8 +19,7 @@ from plant_advisor import get_plant_recommendations, classify_conditions
 
 # ── Page Configuration ────────────────────────────────────────
 st.set_page_config(
-    page_title="AgriSense – IoT Agriculture Monitor",
-    page_icon="🌱",
+    page_title="BoTiny",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -372,8 +371,8 @@ SERVER_URL = server_input
 
 st.markdown(f"""
 <div class="hero-header">
-  <h1>🌱 AgriSense Dashboard</h1>
-  <p>Real-time IoT Agriculture Monitoring &amp; Plant Recommendation System</p>
+  <h1>BoTiny Dashboard</h1>
+  <p>Real-time Botanical Environment Monitoring &amp; Plant Recommendation System</p>
 </div>
 """, unsafe_allow_html=True)
 
